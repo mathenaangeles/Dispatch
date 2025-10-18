@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+semgrep
+gitpython
+python-dotenv
+boto3
+aiofiles
+botocore
