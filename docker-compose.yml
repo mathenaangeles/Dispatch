@@ -1,24 +1,39 @@
-version: '3.8'
+version: "3.8"
+
 services:
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: codeguardian_backend
     ports:
       - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - AWS_REGION=us-east-1
+      - S3_RESULTS_BUCKET=your-security-results-bucket
+      - BEDROCK_AGENT_ID=your-bedrock-agent-id
+      - BEDROCK_AGENT_ALIAS_ID=your-bedrock-agent-alias
+      - DEPLOYER_LAMBDA_NAME=your-deployer-lambda-name
+      - GITHUB_TOKEN_SECRET_NAME=github/awsdispatchprbot
     volumes:
       - ./backend:/backend
       - ./sample-vuln-repo:/sample-vuln-repo:rw
       - ./demo:/demo
-    environment:
-      - PYTHONUNBUFFERED=1
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: codeguardian_frontend
     ports:
       - "5173:5173"
     environment:
       - VITE_API_URL=http://localhost:8000
-    command: ["npm", "run", "dev"]
     volumes:
       - ./frontend:/frontend
+      - /frontend/node_modules
+    depends_on:
+      - backend
+    command: ["npm", "run", "dev"]

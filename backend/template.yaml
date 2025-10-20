@@ -1,0 +1,155 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  AWS Security Pipeline — Scanner, Analyzer, and Deployer Lambdas with API Gateway integrations.
+
+Parameters:
+  BedrockKnowledgeBaseId:
+    Type: String
+    Description: The Bedrock Knowledge Base ID used by the Analyzer Lambda.
+
+Globals:
+  Function:
+    Timeout: 900
+    MemorySize: 1024
+    Runtime: python3.12
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        S3_RESULTS_BUCKET: !Ref S3ResultsBucket
+        BEDROCK_KNOWLEDGE_BASE_ID: !Ref BedrockKnowledgeBaseId
+        GITHUB_TOKEN_SECRET_NAME: github/awsdispatchprbot
+
+Resources:
+  S3ResultsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub security-pipeline-results-${AWS::AccountId}
+
+  ## ----------------------------
+  ## Scanner
+  ## ----------------------------
+  ScannerApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: Security-Scanner-API
+      StageName: prod
+      DefinitionUri: openapi/scanner-api.json
+
+  ScannerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambdas/scanner/
+      Handler: scanner.lambda_handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:PutObject
+                - s3:ListBucket
+              Resource:
+                - !Sub arn:aws:s3:::${S3ResultsBucket}
+                - !Sub arn:aws:s3:::${S3ResultsBucket}/*
+            - Effect: Allow
+              Action: secretsmanager:GetSecretValue
+              Resource: "*"
+      Events:
+        ScannerApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ScannerApi
+            Path: /scan
+            Method: post
+
+  ## ----------------------------
+  ## Analyzer
+  ## ----------------------------
+  AnalyzerApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: Security-Analyzer-API
+      StageName: prod
+      DefinitionUri: openapi/analyzer-api.json
+
+  AnalyzerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambdas/analyzer/
+      Handler: analyzer.lambda_handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:PutObject
+                - s3:ListBucket
+              Resource:
+                - !Sub arn:aws:s3:::${S3ResultsBucket}
+                - !Sub arn:aws:s3:::${S3ResultsBucket}/*
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+                - bedrock:Retrieve
+              Resource: "*"
+      Events:
+        AnalyzerApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref AnalyzerApi
+            Path: /analyze
+            Method: post
+
+  ## ----------------------------
+  ## Deployer
+  ## ----------------------------
+  DeployerApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: Security-Deployer-API
+      StageName: prod
+      DefinitionUri: openapi/deployer-api.json
+
+  DeployerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambdas/deployer/
+      Handler: deployer.lambda_handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:PutObject
+                - s3:ListBucket
+              Resource:
+                - !Sub arn:aws:s3:::${S3ResultsBucket}
+                - !Sub arn:aws:s3:::${S3ResultsBucket}/*
+            - Effect: Allow
+              Action: secretsmanager:GetSecretValue
+              Resource: "*"
+      Events:
+        DeployerApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref DeployerApi
+            Path: /deploy
+            Method: post
+
+Outputs:
+  ScannerApiUrl:
+    Description: API Gateway endpoint for Scanner
+    Value: !Sub "https://${ScannerApi}.execute-api.${AWS::Region}.amazonaws.com/prod/scan"
+
+  AnalyzerApiUrl:
+    Description: API Gateway endpoint for Analyzer
+    Value: !Sub "https://${AnalyzerApi}.execute-api.${AWS::Region}.amazonaws.com/prod/analyze"
+
+  DeployerApiUrl:
+    Description: API Gateway endpoint for Deployer
+    Value: !Sub "https://${DeployerApi}.execute-api.${AWS::Region}.amazonaws.com/prod/deploy"
+
+  ResultsBucket:
+    Description: S3 bucket for scan and remediation results
+    Value: !Ref S3ResultsBucket

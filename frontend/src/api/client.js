@@ -2,16 +2,58 @@ import axios from "axios";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000",
-  timeout: 60000
+  timeout: 100000,
 });
 
-export const scanCode = (projectPath) =>
-  api.post("/scan", { project_path: projectPath });
+export const initiateScan = async (repoUrl, branch = "main") => {
+  const { data } = await api.post("/scan", { repo_url: repoUrl, branch });
+  return data;
+};
 
-export const analyzeCode = (projectPath) =>
-  api.post("/analyze", { project_path: projectPath });
+export const getScanResult = async (scanId) => {
+  try {
+    const { data } = await api.get(`/scan/${scanId}`);
+    return data;
+  } catch (err) {
+    if (err.response?.status === 202) {
+      return { status: "processing" };
+    }
+    throw err;
+  }
+};
 
-export const patchCode = (projectPath) =>
-  api.post("/patch", { project_path: projectPath });
+export const approveFinding = async (scanId, findingId) => {
+  const { data } = await api.post("/approve-finding", {
+    scan_id: scanId,
+    finding_id: findingId,
+  });
+  return data;
+};
+
+export const rejectFinding = async (scanId, findingId) => {
+  const { data } = await api.post("/reject-finding", {
+    scan_id: scanId,
+    finding_id: findingId,
+  });
+  return data;
+};
+
+export const applyPatches = async (scanId, repoUrl, branch = "main") => {
+  const { data } = await api.post("/apply-patches", {
+    scan_id: scanId,
+    repo_url: repoUrl,
+    branch,
+  });
+  return data;
+};
+
+export const checkHealth = async () => {
+  try {
+    const { data } = await api.get("/health");
+    return data;
+  } catch {
+    return { status: "unreachable" };
+  }
+};
 
 export default api;

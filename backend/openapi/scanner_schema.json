@@ -1,0 +1,101 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Security Scanner API",
+    "version": "2.0.0",
+    "description": "Performs static analysis using Semgrep to detect security vulnerabilities in a GitHub repository and stores results in S3."
+  },
+  "paths": {
+    "/scan": {
+      "post": {
+        "summary": "Scan a repository for security vulnerabilities",
+        "operationId": "scanRepository",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "repo_url": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "GitHub repository URL to scan"
+                  },
+                  "branch": {
+                    "type": "string",
+                    "description": "Branch to scan",
+                    "default": "main"
+                  },
+                  "scan_id": {
+                    "type": "string",
+                    "description": "Unique scan identifier for correlating results"
+                  }
+                },
+                "required": ["repo_url", "scan_id"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Scan completed successfully and results stored in S3",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "scan_id": { "type": "string" },
+                    "repo_url": { "type": "string" },
+                    "branch": { "type": "string" },
+                    "findings_count": { "type": "integer" },
+                    "s3_path": { "type": "string" },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": ["scanned"]
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Human-readable summary of the scan result"
+                    }
+                  },
+                  "required": ["scan_id", "repo_url", "findings_count", "status", "s3_path"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body or missing parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error during repository scan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

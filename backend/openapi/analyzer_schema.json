@@ -1,0 +1,103 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Security Analyzer API",
+    "version": "2.0.0",
+    "description": "Analyzes scan findings and generates AI-driven remediation plans using Amazon Bedrock AgentCore, Claude, and Knowledge Bases."
+  },
+  "paths": {
+    "/analyze": {
+      "post": {
+        "summary": "Analyze vulnerabilities and generate AI remediation plan",
+        "operationId": "analyzeVulnerabilities",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "scan_id": {
+                    "type": "string",
+                    "description": "The unique identifier of the scan to analyze"
+                  }
+                },
+                "required": ["scan_id"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully generated remediation plan and updated S3 result record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "scan_id": { "type": "string" },
+                    "timestamp": { "type": "string", "format": "date-time" },
+                    "repo_url": { "type": "string", "format": "uri" },
+                    "total_findings": { "type": "integer" },
+                    "stats": {
+                      "type": "object",
+                      "properties": {
+                        "total_remediations": { "type": "integer" },
+                        "high_severity": { "type": "integer" },
+                        "medium_severity": { "type": "integer" }
+                      }
+                    },
+                    "patch_plan": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "finding_id": { "type": "string" },
+                          "file": { "type": "string" },
+                          "line": { "type": "integer" },
+                          "end_line": { "type": "integer" },
+                          "vulnerability": { "type": "string" },
+                          "severity": { "type": "string" },
+                          "original_code": { "type": "string" },
+                          "fixed_code": { "type": "string" },
+                          "explanation": { "type": "string" },
+                          "references": {
+                            "type": "array",
+                            "items": { "type": "string" }
+                          },
+                          "confidence": { "type": "number" }
+                        }
+                      }
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": ["analyzed"]
+                    },
+                    "stage": {
+                      "type": "string",
+                      "enum": ["analyzer"]
+                    }
+                  },
+                  "required": ["scan_id", "patch_plan", "status"]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Analyzer error or Bedrock invocation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

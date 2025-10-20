@@ -1,0 +1,110 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Security Deployer API",
+    "version": "2.0.0",
+    "description": "Applies approved AI-generated remediations, commits them to a new GitHub branch, and creates a pull request."
+  },
+  "paths": {
+    "/deploy": {
+      "post": {
+        "summary": "Deploy AI-generated security fixes to GitHub",
+        "operationId": "deployFixes",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "scan_id": {
+                    "type": "string",
+                    "description": "Unique identifier for the security scan"
+                  },
+                  "repo_url": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "GitHub repository URL to apply fixes to"
+                  },
+                  "branch": {
+                    "type": "string",
+                    "description": "Base branch for pull request",
+                    "default": "main"
+                  }
+                },
+                "required": ["scan_id", "repo_url"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully deployed fixes and created a pull request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "scan_id": { "type": "string" },
+                    "repo_url": { "type": "string" },
+                    "branch": { "type": "string" },
+                    "fixes_applied": { "type": "integer" },
+                    "pr_url": { "type": "string" },
+                    "pr_number": { "type": "integer" },
+                    "status": {
+                      "type": "string",
+                      "enum": ["completed"]
+                    },
+                    "deployment": {
+                      "type": "object",
+                      "properties": {
+                        "branch": { "type": "string" },
+                        "fixes_applied": { "type": "integer" },
+                        "pr_url": { "type": "string" },
+                        "pr_number": { "type": "integer" }
+                      }
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["scan_id", "repo_url", "pr_url", "branch", "status"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request — missing required parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error applying fixes or creating pull request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
