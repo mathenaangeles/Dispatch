@@ -8,7 +8,24 @@ const TIMEOUTS = {
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000",
-  timeout: parseInt(import.meta.env.VITE_API_TIMEOUT) || TIMEOUTS.analysis,
+  timeout: 100000,
+});
+
+api.interceptors.request.use((config) => {
+  const userConfig = JSON.parse(localStorage.getItem('dispatchConfig'));
+  if (userConfig) {
+    config.headers['X-AWS-Config'] = btoa(JSON.stringify({
+      region: userConfig.awsRegion,
+      accessKey: userConfig.awsAccessKey,
+      secretKey: userConfig.awsSecretKey,
+      agentId: userConfig.bedrockAgentId,
+      agentAliasId: userConfig.bedrockAgentAliasId,
+      s3Bucket: userConfig.s3Bucket,
+      knowledgeBaseId: userConfig.knowledgeBaseId,
+      githubTokenSecret: userConfig.githubTokenSecret
+    }));
+  }
+  return config;
 });
 
 export const initiateScan = async (repoUrl, branch = "main") => {

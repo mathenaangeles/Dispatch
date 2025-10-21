@@ -11,9 +11,17 @@ import DiffModal from "../components/DiffModal";
 import { CheckCircle, Rocket } from "lucide-react";
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState(null);
+
+  useEffect(() => {
+    const config = localStorage.getItem('dispatchConfig');
+    if (!config) {
+      navigate('/config');
+    }
+  }, []);
   const [activeTab, setActiveTab] = useState("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedFinding, setSelectedFinding] = useState(null);
