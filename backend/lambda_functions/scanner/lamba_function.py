@@ -1,12 +1,11 @@
-import json
 import os
-import boto3
-import subprocess
-import tempfile
-import shutil
 import uuid
-from datetime import datetime
+import json
+import boto3
+import tempfile
+import subprocess
 from pathlib import Path
+from datetime import datetime
 
 s3_client = boto3.client('s3')
 secrets_client = boto3.client('secretsmanager')

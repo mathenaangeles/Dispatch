@@ -4,7 +4,6 @@ Dispatch is a DevSecOps AI agent powered by **Amazon Bedrock AgentCore**, **AWS 
 
 This pipeline scans code repositories for vulnerabilities, provides LLM-driven analysis, and automatically deploys fixes through pull requests.
 
-
 ## Prerequisites
 
 Before setting up locally or deploying to AWS, ensure you have:

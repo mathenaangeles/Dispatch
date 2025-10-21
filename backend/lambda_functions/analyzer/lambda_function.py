@@ -3,10 +3,11 @@ import os
 import json
 import boto3
 from datetime import datetime
+from bedrock_adapter import create_model_runtime, create_agent_runtime, invoke_model, retrieve_kb
 
 s3_client = boto3.client('s3')
-bedrock_runtime = boto3.client('bedrock-runtime')
-bedrock_agent_runtime = boto3.client('bedrock-agent-runtime')
+bedrock_runtime = create_model_runtime()
+bedrock_agent_runtime = create_agent_runtime()
 
 def lambda_handler(event, context):
     print(f"Analyzer Lambda invoked with event: {json.dumps(event)}")
@@ -134,7 +135,8 @@ def query_knowledge_base(kb_id, vulnerability_type, description):
 
     print(f"Querying Knowledge Base for: {vulnerability_type}")
 
-    response = bedrock_agent_runtime.retrieve(
+    response = retrieve_kb(
+        bedrock_agent_runtime,
         knowledgeBaseId=kb_id,
         retrievalQuery={'text': query_text},
         retrievalConfiguration={'vectorSearchConfiguration': {'numberOfResults': 5}}
@@ -200,7 +202,8 @@ def generate_fix_with_claude(finding, kb_context):
         'messages': [{'role': 'user', 'content': prompt}]
     }
 
-    response = bedrock_runtime.invoke_model(
+    response = invoke_model(
+        bedrock_runtime,
         modelId='anthropic.claude-3-5-sonnet-20241022-v2:0',
         contentType='application/json',
         accept='application/json',

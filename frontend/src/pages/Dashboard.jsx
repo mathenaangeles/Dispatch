@@ -21,6 +21,7 @@ export default function Dashboard() {
   const [applyingPatches, setApplyingPatches] = useState(false);
   const [lastScanDuration, setLastScanDuration] = useState(null);
   const [scanId, setScanId] = useState(null);
+  const [agentPhase, setAgentPhase] = useState("scanning");
 
   const formatDuration = (start, end) => {
     const diffMs = new Date(end).getTime() - new Date(start).getTime();
@@ -38,6 +39,11 @@ export default function Dashboard() {
     let retries = 0;
     while (retries < 20) {
       const res = await getScanResult(id);
+      
+      if (res.stage && res.stage !== agentPhase) {
+        setAgentPhase(res.stage);
+      }
+
       if (res.status !== "processing") {
         setReport(res);
         const duration = formatDuration(startTime, res.timestamp);
@@ -54,6 +60,7 @@ export default function Dashboard() {
     if (!input.trim()) return;
     setLoading(true);
     setReport(null);
+    setAgentPhase('scanning');
     const scanStartTime = new Date();
 
     try {
@@ -98,6 +105,7 @@ export default function Dashboard() {
   const handleApplyAllPatches = async () => {
     if (!scanId) return;
     setApplyingPatches(true);
+    setAgentPhase('deployer');
     try {
       const result = await applyPatches(scanId, input);
       setReport({ ...report, apply_result: result, patches_applied: true });
@@ -107,6 +115,7 @@ export default function Dashboard() {
       console.error("Failed to apply patches:", err);
     } finally {
       setApplyingPatches(false);
+      setAgentPhase('scanning');
     }
   };
 
@@ -144,7 +153,7 @@ export default function Dashboard() {
         />
 
         <div className="mt-6">
-          {loading && <LoadingState />}
+          {loading && <LoadingState stage={agentPhase} />}
 
           {report && !loading && !report.error && (
             <>

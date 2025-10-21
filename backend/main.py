@@ -8,6 +8,7 @@ from pydantic import BaseModel, HttpUrl
 from botocore.exceptions import ClientError
 from fastapi import FastAPI, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
+from bedrock_adapter import create_agent_runtime, invoke_agent
 
 app = FastAPI(title="Dispatch Security Pipeline API")
 
@@ -19,8 +20,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-bedrock_agent_runtime = boto3.client(
-    "bedrock-agent-runtime",
+bedrock_agent_runtime = create_agent_runtime(
     region_name=os.getenv("AWS_REGION", "us-east-1")
 )
 
@@ -112,7 +112,8 @@ async def initiate_scan(request: ScanRequest):
         session_id = f"scan_{uuid.uuid4().hex[:10]}"
         print(f"Starting AgentCore session: {session_id}")
 
-        agent_response = bedrock_agent_runtime.invoke_agent(
+        agent_response = invoke_agent(
+            bedrock_agent_runtime,
             agentId=os.getenv("BEDROCK_AGENT_ID"),
             agentAliasId=os.getenv("BEDROCK_AGENT_ALIAS_ID"),
             sessionId=session_id,
